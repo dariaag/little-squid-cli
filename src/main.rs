@@ -16,8 +16,7 @@ use tokio;
 async fn main() -> Result<()> {
     let config: Config = Opts::parse().try_into().unwrap();
     println!("CONFIG: {:?}", config);
-    // let args = Args::parse();
-    // let Args { outfile, silent } = args;
+
     let start_time = std::time::Instant::now();
     //let (stat_tx, stat_rx) = unbounded();
 

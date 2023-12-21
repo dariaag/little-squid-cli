@@ -9,7 +9,7 @@ pub struct Range {
     pub end: u64,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Dataset {
     Blocks,
     Transactions,
@@ -29,7 +29,7 @@ impl TryFrom<Opts> for Config {
         let dataset = get_dataset(opts.dataset)?;
         let range = get_range(opts.range)?.try_into()?;
         let fields = get_fields(opts.fields, dataset)?;
-        let options = get_options(opts.options, dataset)?;
+        let options = get_options(opts.options, dataset.clone())?;
 
         Ok(Config {
             dataset,
@@ -71,7 +71,7 @@ fn get_range(range: Option<String>) -> Result<Vec<String>> {
 
 fn get_fields(fields: Option<String>, dataset: Dataset) -> Result<Vec<String>> {
     match dataset {
-        Dataset::Blocks => verify_block_ields(
+        Dataset::Blocks => verify_block_fields(
             fields
                 .unwrap()
                 .trim()
@@ -80,7 +80,15 @@ fn get_fields(fields: Option<String>, dataset: Dataset) -> Result<Vec<String>> {
                 .collect(),
             dataset,
         ),
-        Dataset::Transactions => Ok(vec!["hash".to_owned()]),
+        Dataset::Transactions => verify_transaction_fields(
+            fields
+                .unwrap()
+                .trim()
+                .split(" ")
+                .map(String::from)
+                .collect(),
+            dataset,
+        ),
         Dataset::Logs => Ok(vec!["hash".to_owned()]),
     }
     // match fields {
@@ -120,9 +128,18 @@ fn verify_transaction_fields(fields: Vec<String>, dataset: Dataset) -> Result<Ve
         "timestamp",
         "type",
     ];
+    let mut verified_fields: Vec<String> = vec![];
+    for field in fields {
+        if valid_fields.contains(&field.as_str()) {
+            verified_fields.push(field);
+        } else {
+            return Err(anyhow!("Invalid field"));
+        }
+    }
+    Ok(verified_fields)
 }
 
-fn verify_block_ields(fields: Vec<String>, dataset: Dataset) -> Result<Vec<String>> {
+fn verify_block_fields(fields: Vec<String>, dataset: Dataset) -> Result<Vec<String>> {
     let valid_fields = vec![
         "hash",
         "number",
@@ -168,7 +185,7 @@ fn get_options(
 ) -> Result<HashMap<String, String>, anyhow::Error> {
     match options {
         Some(options) => {
-            if dataset == Dataset::Blocks {
+            if dataset == Dataset::Blocks || options == "".to_owned() {
                 return Ok(HashMap::new());
             }
             let verified_options = get_verified_options(dataset).unwrap();
@@ -208,6 +225,8 @@ fn get_verified_options(dataset: Dataset) -> Option<Vec<String>> {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+
     use super::{Config, Dataset, Range};
     use crate::cli::opts::Opts;
     use anyhow::Result;
@@ -218,6 +237,7 @@ mod tests {
             dataset: Some("blocks".to_owned()),
             range: Some("1:10".to_owned()),
             fields: Some("timestamp".to_owned()),
+            options: Some("".to_owned()),
         }
         .try_into()?;
         assert_eq!(opts.dataset, Dataset::Blocks);
@@ -233,6 +253,7 @@ mod tests {
             dataset: Some("blocks".to_owned()),
             range: Some("1:10000".to_owned()),
             fields: Some("timestamp miner logsBloom".to_owned()),
+            options: Some("".to_owned()),
         }
         .try_into()?;
         assert_eq!(opts.dataset, Dataset::Blocks);
@@ -252,6 +273,30 @@ mod tests {
             ]
         );
 
+        return Ok(());
+    }
+    #[test]
+    fn test_transaction_fields() -> Result<()> {
+        let opts: Config = Opts {
+            dataset: Some("transactions".to_owned()),
+            range: Some("1:10000".to_owned()),
+            fields: Some("id from to".to_owned()),
+            options: Some("".to_owned()),
+        }
+        .try_into()?;
+        print!("{:?}", opts);
+        assert_eq!(opts.dataset, Dataset::Transactions);
+        assert_eq!(
+            opts.range,
+            Range {
+                start: 1,
+                end: 10000
+            }
+        );
+        assert_eq!(
+            opts.fields,
+            vec!["id".to_owned(), "from".to_owned(), "to".to_owned()]
+        );
         return Ok(());
     }
 
