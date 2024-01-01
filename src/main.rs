@@ -1,14 +1,9 @@
-use anyhow::Result as AnyhowResult;
+//use anyhow::Result as AnyhowResult;
 use clap::Parser;
-
-use crossbeam::channel::{bounded, unbounded};
-use futures::executor::block_on;
-
+use crossbeam::channel::unbounded;
 use little_squid_cli::cli::config::Config;
 use little_squid_cli::cli::opts::Opts;
 use little_squid_cli::datasets::blocks;
-use little_squid_cli::datasets::traits::DataFetcher;
-use little_squid_cli::export::fields;
 use little_squid_cli::progress::stats;
 use little_squid_cli::save;
 use std::io::Result;

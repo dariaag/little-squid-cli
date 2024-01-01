@@ -1,10 +1,10 @@
 use crate::cli::config::Dataset;
 use crate::export::export::save_to_file;
 use crossbeam::channel::Receiver;
-use json_writer::JSONObjectWriter;
+
 use serde_json::Value;
-use std::fs::File;
-use std::io::{self, BufWriter, ErrorKind, Result, Write};
+
+use std::io::Result;
 pub fn write_loop(
     dataset: Dataset,
     fields: Vec<String>,
@@ -17,38 +17,9 @@ pub fn write_loop(
         if buffer.is_empty() {
             break;
         }
-        //let serialized = serde_json::to_string(&buffer)
-        //.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
-        //
 
         save_to_file(dataset, &fields, buffer, counter)?;
         counter += 1;
-
-        // Write the serialized string to the file
-        // writer.write_all(serialized.as_bytes())?;
-
-        // let mut object_writer = JSONObjectWriter::new(&mut object_str);
-        // if let Err(e) = writer.write_all(&buffer) {
-        //     if e.kind() == ErrorKind::BrokenPipe {
-        //         return Ok(());
-        //     }
-        //     return Err(e);
-        // };
     }
-    Ok(())
-}
-
-fn write_vec_to_file(vec: Vec<Value>, file_path: &str) -> Result<()> {
-    // Serialize the Vec<Value> to a JSON string
-    let serialized = serde_json::to_string(&vec)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
-
-    // Create a file and use a buffered writer for efficiency
-    let file = File::create(file_path)?;
-    let mut writer = BufWriter::new(file);
-
-    // Write the serialized string to the file
-    writer.write_all(serialized.as_bytes())?;
-
     Ok(())
 }
