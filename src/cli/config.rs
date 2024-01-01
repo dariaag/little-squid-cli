@@ -20,7 +20,7 @@ pub struct Config {
     pub dataset: Dataset,
     pub range: Range,
     pub fields: Vec<String>,
-    pub options: HashMap<String, String>,
+    pub options: HashMap<String, Vec<String>>,
 }
 
 impl TryFrom<Opts> for Config {
@@ -182,18 +182,21 @@ fn get_dataset(dataset: Option<String>) -> Result<Dataset> {
 fn get_options(
     options: Option<String>,
     dataset: Dataset,
-) -> Result<HashMap<String, String>, anyhow::Error> {
+) -> Result<HashMap<String, Vec<String>>, anyhow::Error> {
     match options {
         Some(options) => {
             if dataset == Dataset::Blocks || options == "".to_owned() {
                 return Ok(HashMap::new());
             }
             let verified_options = get_verified_options(dataset).unwrap();
-            let mut options_map: HashMap<String, String> = HashMap::new();
+            let mut options_map: HashMap<String, Vec<String>> = HashMap::new();
             for option in options.split(" ") {
                 let option_value = option.split(":").collect::<Vec<&str>>();
                 if verified_options.contains(&option_value[0].to_string()) {
-                    options_map.insert(option_value[0].to_string(), option_value[1].to_string());
+                    options_map.insert(
+                        option_value[0].to_string(),
+                        vec![option_value[1].to_string()], //add mult append
+                    );
                 } else {
                     return Err(anyhow!("Invalid option"));
                 }

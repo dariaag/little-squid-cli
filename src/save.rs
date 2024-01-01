@@ -1,10 +1,15 @@
+use crate::cli::config::Dataset;
 use crate::export::export::save_to_file;
 use crossbeam::channel::Receiver;
 use json_writer::JSONObjectWriter;
 use serde_json::Value;
 use std::fs::File;
 use std::io::{self, BufWriter, ErrorKind, Result, Write};
-pub fn write_loop(write_rx: Receiver<Vec<Value>>) -> Result<()> {
+pub fn write_loop(
+    dataset: Dataset,
+    fields: Vec<String>,
+    write_rx: Receiver<Vec<Value>>,
+) -> Result<()> {
     let mut counter = 0;
     loop {
         //receive the bytes from stats
@@ -16,7 +21,7 @@ pub fn write_loop(write_rx: Receiver<Vec<Value>>) -> Result<()> {
         //.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
         //
 
-        save_to_file(buffer, counter)?;
+        save_to_file(dataset, &fields, buffer, counter)?;
         counter += 1;
 
         // Write the serialized string to the file

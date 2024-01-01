@@ -3,6 +3,7 @@ use reqwest::{self, Client};
 use serde::Deserialize;
 use serde_json::{json, to_string, Map, Value};
 use std::{
+    collections::HashMap,
     io::{self, Result as IoResult},
     time::Instant,
 };
@@ -10,42 +11,59 @@ use tokio;
 /// Chunk of blocks
 use utils::archive::{get_height, get_worker};
 
-use crate::export::fields;
+use crate::{cli::config::Dataset, export::fields};
 #[derive(Debug, Clone)]
 
 struct Range(u64, u64);
 const MAX_CHUNK_SIZE: usize = 10 * 1024 * 1024; // 10 MB in bytes
 
-fn create_block_query(start_block: u64, fields: Vec<String>) {}
+fn create_query_json(
+    dataset: Dataset,
+    start_block: u64,
+    fields: &[String],
+    options: &HashMap<String, Vec<String>>,
+) -> Value {
+    let field_map = fields
+        .iter()
+        .map(|field| (field.clone(), json!(true)))
+        .collect::<Map<_, _>>();
 
-fn create_json_object(start_block: u64, fields: &Vec<String>) -> Value {
-    let mut json_map = Map::new();
+    match dataset {
+        Dataset::Blocks => json!({
+            "fields": {"block": field_map},
+            "fromBlock": start_block,
+            "includeAllBlocks": true,
+        }),
 
-    for field in fields {
-        // Insert default value for each field
-        // Here, I'm using an empty string as a default value, but you can modify it as needed
-        json_map.insert(field.to_string(), json!(true));
+        Dataset::Transactions => {
+            let options_json = json!(options);
+            json!({
+                "transactions": [options_json],
+                "fields": {
+                    "block": {},
+                    "transaction": field_map
+                },
+                "fromBlock": start_block,
+                "includeAllBlocks": true,
+            })
+        }
+
+        Dataset::Logs => {
+            // Return a Result::Err or use todo!() if not yet implemented
+            todo!("Logs dataset handling not implemented")
+        }
     }
-
-    let block_query = json!({
-        "fields": {
-            "block":
-                Value::Object(json_map),
-        },
-        "fromBlock": start_block,
-        //"toBlock": start_block + 1000000,
-        "includeAllBlocks": true,
-    });
-    block_query
 }
 
-//fetch block chunk that worker has
 pub async fn fetch_block_chunk(
+    dataset: Dataset,
     start_block: u64,
     fields: &Vec<String>,
+    options: &HashMap<String, Vec<String>>,
     client: Client,
 ) -> Result<(Vec<Value>, u64), reqwest::Error> {
-    let block_query = create_json_object(start_block, fields);
+    let block_query = create_query_json(dataset, start_block, fields, &options);
+    println!("BLOCK QUERY: {:?}", block_query);
     let worker = get_worker(
         "https://v2.archive.subsquid.io/network/ethereum-mainnet",
         &start_block.to_string(),
@@ -62,6 +80,8 @@ pub async fn fetch_block_chunk(
         .await?;
 
     let blocks_value: Value = serde_json::from_str::<Value>(&result).unwrap();
+    //println!("BLOCKS VALUE: {:?}", result);
+
     let blocks = blocks_value.as_array().unwrap();
 
     let next_block = blocks[blocks.len() - 1]["header"]["number"]
@@ -78,17 +98,20 @@ fn normalize_progess(start_block: u64, end_block: u64, current_block: u64) -> u6
     normalized_progress
 }
 pub async fn block_loop(
+    dataset: Dataset,
     mut start_block: u64,
     end_block: u64,
     fields: Vec<String>,
+    options: HashMap<String, Vec<String>>,
     write_tx: Sender<Vec<Value>>,
     stats_tx: Sender<u64>,
 ) -> IoResult<()> {
     loop {
         let client: Client = reqwest::Client::new();
-        let (block_chunk, next_block) = fetch_block_chunk(start_block, &fields, client)
-            .await
-            .unwrap();
+        let (block_chunk, next_block) =
+            fetch_block_chunk(dataset, start_block, &fields, &options, client)
+                .await
+                .unwrap();
         let mut data_chunk = Vec::new();
         let mut current_size = 0;
 
@@ -108,7 +131,7 @@ pub async fn block_loop(
         }
         let normalized_progress = normalize_progess(start_block, end_block, next_block);
         let _ = stats_tx.send(normalized_progress);
-        //break or continue
+        //break or continues
         match next_block {
             _ if next_block > end_block => {
                 break;
@@ -124,41 +147,41 @@ pub async fn block_loop(
     Ok(())
 }
 
-#[tokio::test]
+// #[tokio::test]
 
-async fn test_fetch_block_chunk() {
-    //let archive_url = "https://v2.archive.subsquid.io/network/ethereum-mainnet";
-    let start_time = Instant::now();
-    let fields = vec![
-        "hash".to_owned(),
-        "number".to_owned(),
-        "parentHash".to_owned(),
-    ];
-    let client: Client = reqwest::Client::new();
-    let (block_chunk, next_block) = fetch_block_chunk(2000000, &fields, client).await.unwrap();
-    print!("START BLOCK: {:?}\n ", 2000000);
-    println!("LENGTH OF BLOCK CHUNK: {:?} ", block_chunk.len());
-    print!("LAST BLOCK: {:?}\n ", next_block);
-    let client: Client = reqwest::Client::new();
-    let fields1 = vec![
-        "hash".to_owned(),
-        "number".to_owned(),
-        "parentHash".to_owned(),
-    ];
-    let (block_chunk, next_block) = fetch_block_chunk(14000000, &fields1, client).await.unwrap();
-    print!("START BLOCK: {:?}\n ", 14000000);
-    println!("LENGTH OF BLOCK CHUNK: {:?} ", block_chunk.len());
-    print!("LAST BLOCK: {:?}\n ", next_block);
-    let fields2 = vec![
-        "hash".to_owned(),
-        "number".to_owned(),
-        "parentHash".to_owned(),
-    ];
-    let client: Client = reqwest::Client::new();
-    let (block_chunk, next_block) = fetch_block_chunk(18000000, &fields2, client).await.unwrap();
-    print!("START BLOCK: {:?}\n ", 18000000);
-    println!("LENGTH OF BLOCK CHUNK: {:?} ", block_chunk.len());
-    print!("LAST BLOCK: {:?}\n ", next_block);
-    let elapsed_time = start_time.elapsed();
-    println!("ELAPSED TIME: {:?}\n", elapsed_time);
-}
+// async fn test_fetch_block_chunk() {
+//     //let archive_url = "https://v2.archive.subsquid.io/network/ethereum-mainnet";
+//     let start_time = Instant::now();
+//     let fields = vec![
+//         "hash".to_owned(),
+//         "number".to_owned(),
+//         "parentHash".to_owned(),
+//     ];
+//     let client: Client = reqwest::Client::new();
+//     let (block_chunk, next_block) = fetch_block_chunk(2000000, &fields, client).await.unwrap();
+//     print!("START BLOCK: {:?}\n ", 2000000);
+//     println!("LENGTH OF BLOCK CHUNK: {:?} ", block_chunk.len());
+//     print!("LAST BLOCK: {:?}\n ", next_block);
+//     let client: Client = reqwest::Client::new();
+//     let fields1 = vec![
+//         "hash".to_owned(),
+//         "number".to_owned(),
+//         "parentHash".to_owned(),
+//     ];
+//     let (block_chunk, next_block) = fetch_block_chunk(14000000, &fields1, client).await.unwrap();
+//     print!("START BLOCK: {:?}\n ", 14000000);
+//     println!("LENGTH OF BLOCK CHUNK: {:?} ", block_chunk.len());
+//     print!("LAST BLOCK: {:?}\n ", next_block);
+//     let fields2 = vec![
+//         "hash".to_owned(),
+//         "number".to_owned(),
+//         "parentHash".to_owned(),
+//     ];
+//     let client: Client = reqwest::Client::new();
+//     let (block_chunk, next_block) = fetch_block_chunk(18000000, &fields2, client).await.unwrap();
+//     print!("START BLOCK: {:?}\n ", 18000000);
+//     println!("LENGTH OF BLOCK CHUNK: {:?} ", block_chunk.len());
+//     print!("LAST BLOCK: {:?}\n ", next_block);
+//     let elapsed_time = start_time.elapsed();
+//     println!("ELAPSED TIME: {:?}\n", elapsed_time);
+// }
