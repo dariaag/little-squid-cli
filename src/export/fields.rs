@@ -1,13 +1,3 @@
-use polars::prelude::{
-    DataFrame, NamedFrom, ParquetCompression, ParquetWriter, Result as PolarsResult, Series,
-    ZstdLevel,
-};
-use serde_json::Value;
-use std::collections::HashMap;
-
-use std::fs::{self, File};
-use std::io::Error;
-use std::path::Path;
 #[derive(Debug)]
 pub enum FieldData {
     BlocksData(BlockFieldData),
@@ -135,5 +125,116 @@ impl FieldData {
             },
             _ => panic!("Unsupported type"),
         }
+    }
+}
+
+pub fn create_field_data(field: &str) -> FieldData {
+    match field {
+        "hash" => {
+            let block_hash = BlockFieldData::Hash(vec![]);
+            let field_data = FieldData::BlocksData(block_hash);
+            field_data
+        }
+        "number" => {
+            let block_number = BlockFieldData::Number(vec![]);
+            let field_data = FieldData::BlocksData(block_number);
+            field_data
+        }
+        "parentHash" => {
+            let parent_hash = BlockFieldData::ParentHash(vec![]);
+            let field_data = FieldData::BlocksData(parent_hash);
+            field_data
+        }
+        "timestamp" => {
+            let timestamp = BlockFieldData::Timestamp(vec![]);
+            let field_data = FieldData::BlocksData(timestamp);
+            field_data
+        }
+        "miner" => {
+            let miner = BlockFieldData::Miner(vec![]);
+            let field_data = FieldData::BlocksData(miner);
+            field_data
+        }
+        "stateRoot" => {
+            let state_root = BlockFieldData::StateRoot(vec![]);
+            let field_data = FieldData::BlocksData(state_root);
+            field_data
+        }
+        "transactionsRoot" => {
+            let transactions_root = BlockFieldData::TransactionsRoot(vec![]);
+            let field_data = FieldData::BlocksData(transactions_root);
+            field_data
+        }
+        "receiptsRoot" => {
+            let receipts_root = BlockFieldData::ReceiptsRoot(vec![]);
+            let field_data = FieldData::BlocksData(receipts_root);
+            field_data
+        }
+        "gasUsed" => {
+            let gas_used = BlockFieldData::GasUsed(vec![]);
+            let field_data = FieldData::BlocksData(gas_used);
+            field_data
+        }
+        "extraData" => {
+            let extra_data = BlockFieldData::ExtraData(vec![]);
+            let field_data = FieldData::BlocksData(extra_data);
+            field_data
+        }
+        "baseFeePerGas" => {
+            let base_fee_per_gas = BlockFieldData::BaseFeePerGas(vec![]);
+            let field_data = FieldData::BlocksData(base_fee_per_gas);
+            field_data
+        }
+        "logsBloom" => {
+            let logs_bloom = BlockFieldData::LogsBloom(vec![]);
+            let field_data = FieldData::BlocksData(logs_bloom);
+            field_data
+        }
+        "totalDifficulty" => {
+            let total_difficulty = BlockFieldData::TotalDifficulty(vec![]);
+            let field_data = FieldData::BlocksData(total_difficulty);
+            field_data
+        }
+        "size" => {
+            let size = BlockFieldData::Size(vec![]);
+            let field_data = FieldData::BlocksData(size);
+            field_data
+        }
+        //tx
+        "id" => {
+            let id = TransactionsFieldData::Id(vec![]);
+            let field_data = FieldData::TransactionsData(id);
+            field_data
+        }
+        "transactionIndex" => {
+            let transaction_index = TransactionsFieldData::TransactionIndex(vec![]);
+            let field_data = FieldData::TransactionsData(transaction_index);
+            field_data
+        }
+        "from" => {
+            let from = TransactionsFieldData::From(vec![]);
+            let field_data = FieldData::TransactionsData(from);
+            field_data
+        }
+        "to" => {
+            let to = TransactionsFieldData::To(vec![]);
+            let field_data = FieldData::TransactionsData(to);
+            field_data
+        }
+
+        // "number" => FieldData::Number(vec![]),
+        // "parentHash" => FieldData::ParentHash(vec![]),
+        // "timestamp" => FieldData::Timestamp(vec![]),
+        // "miner" => FieldData::Miner(vec![]),
+        // "stateRoot" => FieldData::StateRoot(vec![]),
+        // "transactionsRoot" => FieldData::TransactionsRoot(vec![]),
+        // "receiptsRoot" => FieldData::ReceiptsRoot(vec![]),
+        // "gasUsed" => FieldData::GasUsed(vec![]),
+        // "extraData" => FieldData::ExtraData(vec![]),
+        // "baseFeePerGas" => FieldData::BaseFeePerGas(vec![]),
+        // "logsBloom" => FieldData::LogsBloom(vec![]),
+        // "totalDifficulty" => FieldData::TotalDifficulty(vec![]),
+        // "size" => FieldData::Size(vec![]),
+        _ => panic!("{} not found", field),
     }
 }

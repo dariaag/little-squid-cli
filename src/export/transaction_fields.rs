@@ -41,7 +41,7 @@ type?: number
 status?: number
 sighash: string */
 #[derive(Debug)]
-pub enum FieldData {
+pub enum TransactionsFieldData {
     Id(Vec<String>),
     TransactionIndex(Vec<u64>),
     From(Vec<String>),

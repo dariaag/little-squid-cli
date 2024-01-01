@@ -10,6 +10,7 @@ use std::{
 use tokio;
 /// Chunk of blocks
 use utils::archive::{get_height, get_worker};
+use utils::utils::normalize_progess;
 
 use crate::{cli::config::Dataset, export::fields};
 #[derive(Debug, Clone)]
@@ -91,12 +92,7 @@ pub async fn fetch_block_chunk(
     // println!("NEXT BLOCK: {:?}", next_block);
     Ok((blocks.to_vec(), next_block))
 }
-fn normalize_progess(start_block: u64, end_block: u64, current_block: u64) -> u64 {
-    let total_blocks = end_block - start_block;
-    let current_progress = current_block - start_block;
-    let normalized_progress = (current_progress * 100) / total_blocks;
-    normalized_progress
-}
+
 pub async fn block_loop(
     dataset: Dataset,
     mut start_block: u64,
