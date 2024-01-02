@@ -1,5 +1,4 @@
 use reqwest::{self};
-use serde_json::Value;
 
 pub async fn get_height(archive_url: &str) -> Result<String, reqwest::Error> {
     let url = format!("{}/height", archive_url);

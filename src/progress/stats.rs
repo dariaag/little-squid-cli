@@ -1,31 +1,11 @@
+use crossbeam::channel::Receiver;
 use indicatif::{ProgressBar, ProgressStyle};
-use std::sync::{Arc, Mutex};
+use std::io::Result;
 use std::thread;
 
-use crossbeam::channel::Receiver;
-use crossterm::{
-    cursor, execute,
-    style::{style, Color, PrintStyledContent, Stylize},
-    terminal::{Clear, ClearType},
-};
-use std::io::{self, Result, Stderr, Write};
-use std::time::Instant;
-
 pub fn stats_loop(stats_rx: Receiver<u64>) -> Result<()> {
-    let progress = Arc::new(Mutex::new((0, false))); // (progress, completed)
-                                                     //let total_blocks = 10000;
+    //let progress = Arc::new(Mutex::new((0, false))); // (progress, completed)
 
-    //let progress_clone = Arc::clone(&progress);
-    // let processing_thread = thread::spawn(move || {
-    //     for _ in 0..total_blocks {
-    //         // Extract and save data here
-    //         let mut progress = progress_clone.lock().unwrap();
-    //         progress.0 += 1;
-    //     }
-    //     progress_clone.lock().unwrap().1 = true; // Mark as completed
-    // });
-
-    //let progress_bar = ProgressBar::new(total_blocks);
     let progress_bar = ProgressBar::new(100);
 
     let progress_bar_style = ProgressStyle::default_bar()

@@ -76,6 +76,6 @@ pub async fn fetch_transactions_chunk(
         .as_u64()
         .unwrap()
         + 1;
-    println!("NEXT BLOCK: {:?}", next_block);
+    //println!("NEXT BLOCK: {:?}", next_block);
     Ok((transactions.to_vec(), next_block))
 }
