@@ -1,5 +1,5 @@
 //pub mod block_fetcher;
-pub mod blocks;
+pub mod fetcher;
 pub mod traits;
 // pub mod transaction_fetcher;
 // pub mod transactions;

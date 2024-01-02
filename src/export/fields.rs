@@ -1,3 +1,9 @@
+use std::collections::HashMap;
+
+use polars::prelude::{NamedFrom, Series};
+
+use crate::cli::config::Dataset;
+
 #[derive(Debug)]
 pub enum FieldData {
     BlocksData(BlockFieldData),
@@ -34,7 +40,7 @@ pub enum TransactionsFieldData {
     MaxPriorityFeePerGas(Vec<u64>),
     Input(Vec<String>),
     Nonce(Vec<u64>),
-    Value(Vec<u64>),
+    Value(Vec<String>),
     V(Vec<u64>),
     R(Vec<String>),
     S(Vec<String>),
@@ -52,8 +58,10 @@ pub enum TransactionsFieldData {
 impl FieldData {
     pub fn add_value(&mut self, value: &serde_json::Value) {
         match self {
-            FieldData::BlocksData(data) => self.add_blocks_value(value),
-            FieldData::TransactionsData(data) => self.add_transactions_value(value),
+            FieldData::BlocksData(_data) => self.add_blocks_value(value),
+            FieldData::TransactionsData(_data) => self.add_transactions_value(value),
+            //logs
+            //traces
             _ => panic!("Unsupported type"),
         }
     }
@@ -77,7 +85,6 @@ impl FieldData {
                 BlockFieldData::LogsBloom(vec) => vec.push(value.as_str().unwrap().to_string()),
                 BlockFieldData::TotalDifficulty(vec) => vec.push(value.as_u64().unwrap()),
                 BlockFieldData::Size(vec) => vec.push(value.as_u64().unwrap()),
-                _ => panic!("Unsupported type"),
             },
             _ => panic!("Unsupported type"),
         }
@@ -100,7 +107,9 @@ impl FieldData {
                 }
                 TransactionsFieldData::Input(vec) => vec.push(value.as_str().unwrap().to_string()),
                 TransactionsFieldData::Nonce(vec) => vec.push(value.as_u64().unwrap()),
-                TransactionsFieldData::Value(vec) => vec.push(value.as_u64().unwrap()),
+                TransactionsFieldData::Value(vec) => {
+                    vec.push(value.as_str().unwrap_or("").to_string());
+                }
                 TransactionsFieldData::V(vec) => vec.push(value.as_u64().unwrap_or(0)),
                 TransactionsFieldData::R(vec) => vec.push(value.as_str().unwrap_or("").to_string()),
                 TransactionsFieldData::S(vec) => vec.push(value.as_str().unwrap_or("").to_string()),
@@ -121,120 +130,139 @@ impl FieldData {
                 TransactionsFieldData::Sighash(vec) => {
                     vec.push(value.as_str().unwrap().to_string())
                 }
-                _ => panic!("Unsupported type"),
             },
             _ => panic!("Unsupported type"),
         }
     }
 }
 
-pub fn create_field_data(field: &str) -> FieldData {
+pub fn create_field_data(field: &str, dataset: Dataset) -> FieldData {
+    match dataset {
+        Dataset::Blocks => create_block_field_data(field),
+        Dataset::Transactions => create_transaction_field_data(field),
+        _ => panic!("Dataset not found"),
+    }
+}
+
+macro_rules! create_transaction_field_data {
+    ($variant:ident) => {
+        FieldData::TransactionsData(TransactionsFieldData::$variant(vec![]))
+    };
+}
+
+fn create_transaction_field_data(field: &str) -> FieldData {
     match field {
-        "hash" => {
-            let block_hash = BlockFieldData::Hash(vec![]);
-            let field_data = FieldData::BlocksData(block_hash);
-            field_data
-        }
-        "number" => {
-            let block_number = BlockFieldData::Number(vec![]);
-            let field_data = FieldData::BlocksData(block_number);
-            field_data
-        }
-        "parentHash" => {
-            let parent_hash = BlockFieldData::ParentHash(vec![]);
-            let field_data = FieldData::BlocksData(parent_hash);
-            field_data
-        }
-        "timestamp" => {
-            let timestamp = BlockFieldData::Timestamp(vec![]);
-            let field_data = FieldData::BlocksData(timestamp);
-            field_data
-        }
-        "miner" => {
-            let miner = BlockFieldData::Miner(vec![]);
-            let field_data = FieldData::BlocksData(miner);
-            field_data
-        }
-        "stateRoot" => {
-            let state_root = BlockFieldData::StateRoot(vec![]);
-            let field_data = FieldData::BlocksData(state_root);
-            field_data
-        }
-        "transactionsRoot" => {
-            let transactions_root = BlockFieldData::TransactionsRoot(vec![]);
-            let field_data = FieldData::BlocksData(transactions_root);
-            field_data
-        }
-        "receiptsRoot" => {
-            let receipts_root = BlockFieldData::ReceiptsRoot(vec![]);
-            let field_data = FieldData::BlocksData(receipts_root);
-            field_data
-        }
-        "gasUsed" => {
-            let gas_used = BlockFieldData::GasUsed(vec![]);
-            let field_data = FieldData::BlocksData(gas_used);
-            field_data
-        }
-        "extraData" => {
-            let extra_data = BlockFieldData::ExtraData(vec![]);
-            let field_data = FieldData::BlocksData(extra_data);
-            field_data
-        }
-        "baseFeePerGas" => {
-            let base_fee_per_gas = BlockFieldData::BaseFeePerGas(vec![]);
-            let field_data = FieldData::BlocksData(base_fee_per_gas);
-            field_data
-        }
-        "logsBloom" => {
-            let logs_bloom = BlockFieldData::LogsBloom(vec![]);
-            let field_data = FieldData::BlocksData(logs_bloom);
-            field_data
-        }
-        "totalDifficulty" => {
-            let total_difficulty = BlockFieldData::TotalDifficulty(vec![]);
-            let field_data = FieldData::BlocksData(total_difficulty);
-            field_data
-        }
-        "size" => {
-            let size = BlockFieldData::Size(vec![]);
-            let field_data = FieldData::BlocksData(size);
-            field_data
-        }
-        //tx
-        "id" => {
-            let id = TransactionsFieldData::Id(vec![]);
-            let field_data = FieldData::TransactionsData(id);
-            field_data
-        }
-        "transactionIndex" => {
-            let transaction_index = TransactionsFieldData::TransactionIndex(vec![]);
-            let field_data = FieldData::TransactionsData(transaction_index);
-            field_data
-        }
-        "from" => {
-            let from = TransactionsFieldData::From(vec![]);
-            let field_data = FieldData::TransactionsData(from);
-            field_data
-        }
-        "to" => {
-            let to = TransactionsFieldData::To(vec![]);
-            let field_data = FieldData::TransactionsData(to);
-            field_data
+        "id" => create_transaction_field_data!(Id),
+        "transactionIndex" => create_transaction_field_data!(TransactionIndex),
+        "from" => create_transaction_field_data!(From),
+        "to" => create_transaction_field_data!(To),
+        "hash" => create_transaction_field_data!(Hash),
+        "gas" => create_transaction_field_data!(Gas),
+        "gasPrice" => create_transaction_field_data!(GasPrice),
+        "maxFeePerGas" => create_transaction_field_data!(MaxFeePerGas),
+        "maxPriorityFeePerGas" => create_transaction_field_data!(MaxPriorityFeePerGas),
+        "input" => create_transaction_field_data!(Input),
+        "nonce" => create_transaction_field_data!(Nonce),
+        "value" => create_transaction_field_data!(Value),
+        "v" => create_transaction_field_data!(V),
+        "r" => create_transaction_field_data!(R),
+        "s" => create_transaction_field_data!(S),
+        "yParity" => create_transaction_field_data!(YParity),
+        "chainId" => create_transaction_field_data!(ChainId),
+        "gasUsed" => create_transaction_field_data!(GasUsed),
+        "cumulativeGasUsed" => create_transaction_field_data!(CumulativeGasUsed),
+        "effectiveGasPrice" => create_transaction_field_data!(EffectiveGasPrice),
+        "contractAddress" => create_transaction_field_data!(ContractAddress),
+        "type" => create_transaction_field_data!(Type),
+        "status" => create_transaction_field_data!(Status),
+        "sighash" => create_transaction_field_data!(Sighash),
+        _ => panic!("Field '{}' not found", field),
+    }
+}
+macro_rules! create_block_field_data {
+    ($variant:ident) => {
+        FieldData::BlocksData(BlockFieldData::$variant(vec![]))
+    };
+}
+
+pub fn create_block_field_data(field: &str) -> FieldData {
+    match field {
+        "hash" => create_block_field_data!(Hash),
+        "number" => create_block_field_data!(Number),
+        "parentHash" => create_block_field_data!(ParentHash),
+        "timestamp" => create_block_field_data!(Timestamp),
+        "miner" => create_block_field_data!(Miner),
+        "stateRoot" => create_block_field_data!(StateRoot),
+        "transactionsRoot" => create_block_field_data!(TransactionsRoot),
+        "receiptsRoot" => create_block_field_data!(ReceiptsRoot),
+        "gasUsed" => create_block_field_data!(GasUsed),
+        "extraData" => create_block_field_data!(ExtraData),
+        "baseFeePerGas" => create_block_field_data!(BaseFeePerGas),
+        "logsBloom" => create_block_field_data!(LogsBloom),
+        "totalDifficulty" => create_block_field_data!(TotalDifficulty),
+        "size" => create_block_field_data!(Size),
+        _ => panic!("Field '{}' not found", field),
+    }
+}
+
+pub fn create_columns_from_field_data(
+    field_map: &HashMap<String, FieldData>,
+    fields: &[&str],
+    //data: FieldData,
+) -> Vec<Series> {
+    let mut columns: Vec<Series> = vec![];
+    //get dataset type here
+    fields.iter().for_each(|field| match field_map.get(*field) {
+        Some(FieldData::BlocksData(data)) => {
+            match data {
+                BlockFieldData::Hash(vec) => columns.push(Series::new(*field, vec)),
+                BlockFieldData::Number(vec) => columns.push(Series::new(*field, vec)),
+                BlockFieldData::ParentHash(vec) => columns.push(Series::new(*field, vec)),
+                BlockFieldData::Timestamp(vec) => columns.push(Series::new(*field, vec)),
+                BlockFieldData::Miner(vec) => columns.push(Series::new(*field, vec)),
+                BlockFieldData::StateRoot(vec) => columns.push(Series::new(*field, vec)),
+                BlockFieldData::TransactionsRoot(vec) => columns.push(Series::new(*field, vec)),
+                BlockFieldData::ReceiptsRoot(vec) => columns.push(Series::new(*field, vec)),
+                BlockFieldData::GasUsed(vec) => columns.push(Series::new(*field, vec)),
+                BlockFieldData::ExtraData(vec) => columns.push(Series::new(*field, vec)),
+                BlockFieldData::BaseFeePerGas(vec) => columns.push(Series::new(*field, vec)),
+                BlockFieldData::LogsBloom(vec) => columns.push(Series::new(*field, vec)),
+                BlockFieldData::TotalDifficulty(vec) => columns.push(Series::new(*field, vec)),
+                BlockFieldData::Size(vec) => columns.push(Series::new(*field, vec)),
+                //_ => panic!("{} not found", field),
+            };
         }
 
-        // "number" => FieldData::Number(vec![]),
-        // "parentHash" => FieldData::ParentHash(vec![]),
-        // "timestamp" => FieldData::Timestamp(vec![]),
-        // "miner" => FieldData::Miner(vec![]),
-        // "stateRoot" => FieldData::StateRoot(vec![]),
-        // "transactionsRoot" => FieldData::TransactionsRoot(vec![]),
-        // "receiptsRoot" => FieldData::ReceiptsRoot(vec![]),
-        // "gasUsed" => FieldData::GasUsed(vec![]),
-        // "extraData" => FieldData::ExtraData(vec![]),
-        // "baseFeePerGas" => FieldData::BaseFeePerGas(vec![]),
-        // "logsBloom" => FieldData::LogsBloom(vec![]),
-        // "totalDifficulty" => FieldData::TotalDifficulty(vec![]),
-        // "size" => FieldData::Size(vec![]),
+        Some(FieldData::TransactionsData(data)) => match data {
+            TransactionsFieldData::Id(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::TransactionIndex(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::From(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::To(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::Hash(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::Gas(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::GasPrice(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::MaxFeePerGas(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::MaxPriorityFeePerGas(vec) => {
+                columns.push(Series::new(*field, vec))
+            }
+            TransactionsFieldData::Input(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::Nonce(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::Value(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::V(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::R(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::S(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::YParity(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::ChainId(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::GasUsed(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::CumulativeGasUsed(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::EffectiveGasPrice(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::ContractAddress(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::Type(vec) => columns.push(Series::new(*&field, vec)),
+            TransactionsFieldData::Status(vec) => columns.push(Series::new(*field, vec)),
+            TransactionsFieldData::Sighash(vec) => columns.push(Series::new(*field, vec)),
+        },
+
         _ => panic!("{} not found", field),
-    }
+    });
+    columns
 }

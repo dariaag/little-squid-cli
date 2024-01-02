@@ -71,24 +71,44 @@ fn get_range(range: Option<String>) -> Result<Vec<String>> {
 
 fn get_fields(fields: Option<String>, dataset: Dataset) -> Result<Vec<String>> {
     match dataset {
-        Dataset::Blocks => verify_block_fields(
-            fields
-                .unwrap()
-                .trim()
-                .split(" ")
-                .map(String::from)
-                .collect(),
-            dataset,
-        ),
-        Dataset::Transactions => verify_transaction_fields(
-            fields
-                .unwrap()
-                .trim()
-                .split(" ")
-                .map(String::from)
-                .collect(),
-            dataset,
-        ),
+        Dataset::Blocks => {
+            if fields.is_none() {
+                return Ok(vec![
+                    "hash".to_owned(),
+                    "number".to_owned(),
+                    "timestamp".to_owned(),
+                    "miner".to_owned(),
+                    "parentHash".to_owned(),
+                ]);
+            };
+            verify_block_fields(
+                fields
+                    .unwrap()
+                    .trim()
+                    .split(" ")
+                    .map(String::from)
+                    .collect(),
+            )
+        }
+        Dataset::Transactions => {
+            if fields.is_none() {
+                return Ok(vec![
+                    "hash".to_owned(),
+                    "from".to_owned(),
+                    "to".to_owned(),
+                    "input".to_owned(),
+                    "value".to_owned(),
+                ]);
+            };
+            verify_transaction_fields(
+                fields
+                    .unwrap()
+                    .trim()
+                    .split(" ")
+                    .map(String::from)
+                    .collect(),
+            )
+        }
         Dataset::Logs => Ok(vec!["hash".to_owned()]),
     }
     // match fields {
@@ -97,8 +117,8 @@ fn get_fields(fields: Option<String>, dataset: Dataset) -> Result<Vec<String>> {
     // }
 }
 
-fn verify_transaction_fields(fields: Vec<String>, dataset: Dataset) -> Result<Vec<String>> {
-    let valid_fields = vec![
+fn verify_transaction_fields(fields: Vec<String>) -> Result<Vec<String>> {
+    let valid_fields: &[&str] = &[
         "id",
         "transactionIndex",
         "from",
@@ -128,19 +148,21 @@ fn verify_transaction_fields(fields: Vec<String>, dataset: Dataset) -> Result<Ve
         "timestamp",
         "type",
     ];
-    let mut verified_fields: Vec<String> = vec![];
-    for field in fields {
-        if valid_fields.contains(&field.as_str()) {
-            verified_fields.push(field);
-        } else {
-            return Err(anyhow!("Invalid field"));
-        }
-    }
-    Ok(verified_fields)
+
+    fields
+        .into_iter()
+        .map(|field| {
+            if valid_fields.contains(&field.as_str()) {
+                Ok(field)
+            } else {
+                Err(anyhow!("Invalid field: {}", field))
+            }
+        })
+        .collect()
 }
 
-fn verify_block_fields(fields: Vec<String>, dataset: Dataset) -> Result<Vec<String>> {
-    let valid_fields = vec![
+fn verify_block_fields(fields: Vec<String>) -> Result<Vec<String>> {
+    let valid_fields: &[&str] = &[
         "hash",
         "number",
         "parentHash",
@@ -156,15 +178,17 @@ fn verify_block_fields(fields: Vec<String>, dataset: Dataset) -> Result<Vec<Stri
         "totalDifficulty",
         "size",
     ];
-    let mut verified_fields: Vec<String> = vec![];
-    for field in fields {
-        if valid_fields.contains(&field.as_str()) {
-            verified_fields.push(field);
-        } else {
-            return Err(anyhow!("Invalid field"));
-        }
-    }
-    Ok(verified_fields)
+
+    fields
+        .into_iter()
+        .map(|field| {
+            if valid_fields.contains(&field.as_str()) {
+                Ok(field)
+            } else {
+                Err(anyhow!("Invalid field: {}", field))
+            }
+        })
+        .collect()
 }
 
 fn get_dataset(dataset: Option<String>) -> Result<Dataset> {

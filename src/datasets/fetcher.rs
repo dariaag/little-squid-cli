@@ -4,7 +4,7 @@ use serde::Deserialize;
 use serde_json::{json, to_string, Map, Value};
 use std::{
     collections::HashMap,
-    io::{self, Result as IoResult},
+    io::{self, ErrorKind, Result as IoResult},
     time::Instant,
 };
 use tokio;
@@ -69,8 +69,7 @@ pub async fn fetch_block_chunk(
         "https://v2.archive.subsquid.io/network/ethereum-mainnet",
         &start_block.to_string(),
     )
-    .await
-    .unwrap();
+    .await?;
     //println!("WORKER: {:?}", worker);
     let result = client
         .post(worker)
@@ -85,8 +84,9 @@ pub async fn fetch_block_chunk(
 
     let blocks = blocks_value.as_array().unwrap();
 
-    let next_block = blocks[blocks.len() - 1]["header"]["number"]
-        .as_u64()
+    let next_block = blocks
+        .last()
+        .and_then(|b| b["header"]["number"].as_u64())
         .unwrap()
         + 1;
     // println!("NEXT BLOCK: {:?}", next_block);

@@ -3,7 +3,7 @@ use clap::Parser;
 use crossbeam::channel::unbounded;
 use little_squid_cli::cli::config::Config;
 use little_squid_cli::cli::opts::Opts;
-use little_squid_cli::datasets::blocks;
+use little_squid_cli::datasets::fetcher;
 use little_squid_cli::progress::stats;
 use little_squid_cli::save;
 use std::io::Result;
@@ -21,7 +21,7 @@ async fn main() -> Result<()> {
 
     let (stat_tx, stat_rx) = unbounded();
     //let read_handle = thread::spawn(move || block_on(blocks::block_loop(1, 1000, write_tx)));
-    let read_handle = tokio::spawn(blocks::block_loop(
+    let read_handle = tokio::spawn(fetcher::block_loop(
         config.dataset,
         config.range.start,
         config.range.end,
