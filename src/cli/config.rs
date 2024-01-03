@@ -69,7 +69,7 @@ fn get_range(range: Option<String>) -> Result<Vec<String>> {
     }
 }
 
-fn get_fields(fields: Option<String>, dataset: Dataset) -> Result<Vec<String>> {
+fn get_fields(fields: Option<Vec<String>>, dataset: Dataset) -> Result<Vec<String>> {
     match dataset {
         Dataset::Blocks => {
             if fields.is_none() {
@@ -81,14 +81,7 @@ fn get_fields(fields: Option<String>, dataset: Dataset) -> Result<Vec<String>> {
                     "parentHash".to_owned(),
                 ]);
             };
-            verify_block_fields(
-                fields
-                    .unwrap()
-                    .trim()
-                    .split(" ")
-                    .map(String::from)
-                    .collect(),
-            )
+            verify_block_fields(fields.unwrap())
         }
         Dataset::Transactions => {
             if fields.is_none() {
@@ -100,14 +93,7 @@ fn get_fields(fields: Option<String>, dataset: Dataset) -> Result<Vec<String>> {
                     "value".to_owned(),
                 ]);
             };
-            verify_transaction_fields(
-                fields
-                    .unwrap()
-                    .trim()
-                    .split(" ")
-                    .map(String::from)
-                    .collect(),
-            )
+            verify_transaction_fields(fields.unwrap())
         }
         Dataset::Logs => {
             if fields.is_none() {
@@ -119,14 +105,7 @@ fn get_fields(fields: Option<String>, dataset: Dataset) -> Result<Vec<String>> {
                     "data".to_owned(),
                 ]);
             };
-            verify_log_fields(
-                fields
-                    .unwrap()
-                    .trim()
-                    .split(" ")
-                    .map(String::from)
-                    .collect(),
-            )
+            verify_log_fields(fields.unwrap())
         } // match fields {
           //     Some(fields) => verify_fields(fields.trim().split(" ").map(String::from).collect()),
           //     None => Err(anyhow!("No fields specified")),
@@ -242,17 +221,17 @@ fn get_dataset(dataset: Option<String>) -> Result<Dataset> {
 }
 
 fn get_options(
-    options: Option<String>,
+    options: Option<Vec<String>>,
     dataset: Dataset,
 ) -> Result<HashMap<String, Vec<String>>, anyhow::Error> {
     match options {
         Some(options) => {
-            if dataset == Dataset::Blocks || options == "".to_owned() {
+            if dataset == Dataset::Blocks || options.is_empty() {
                 return Ok(HashMap::new());
             }
             let verified_options = get_verified_options(dataset).unwrap();
             let mut options_map: HashMap<String, Vec<String>> = HashMap::new();
-            for option in options.split(" ") {
+            for option in options {
                 let option_value = option.split(":").collect::<Vec<&str>>();
                 if verified_options.contains(&option_value[0].to_string()) {
                     options_map.insert(
@@ -300,8 +279,8 @@ mod tests {
         let opts: Config = Opts {
             dataset: Some("blocks".to_owned()),
             range: Some("1:10".to_owned()),
-            fields: Some("timestamp".to_owned()),
-            options: Some("".to_owned()),
+            fields: Some(vec!["timestamp".to_owned()]),
+            options: Some(vec!["".to_owned()]),
         }
         .try_into()?;
         assert_eq!(opts.dataset, Dataset::Blocks);
@@ -316,8 +295,12 @@ mod tests {
         let opts: Config = Opts {
             dataset: Some("blocks".to_owned()),
             range: Some("1:10000".to_owned()),
-            fields: Some("timestamp miner logsBloom".to_owned()),
-            options: Some("".to_owned()),
+            fields: Some(vec![
+                "timestamp".to_owned(),
+                "miner".to_owned(),
+                "logsBloom".to_owned(),
+            ]),
+            options: Some(vec!["".to_owned()]),
         }
         .try_into()?;
         assert_eq!(opts.dataset, Dataset::Blocks);
@@ -344,8 +327,8 @@ mod tests {
         let opts: Config = Opts {
             dataset: Some("transactions".to_owned()),
             range: Some("1:10000".to_owned()),
-            fields: Some("id from to".to_owned()),
-            options: Some("".to_owned()),
+            fields: Some(vec!["id".to_owned(), "from".to_owned(), "to".to_owned()]),
+            options: Some(vec!["".to_owned()]),
         }
         .try_into()?;
         print!("{:?}", opts);

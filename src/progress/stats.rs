@@ -5,7 +5,6 @@ use std::thread;
 
 pub fn stats_loop(stats_rx: Receiver<u64>) -> Result<()> {
     //let progress = Arc::new(Mutex::new((0, false))); // (progress, completed)
-
     let progress_bar = ProgressBar::new(100);
 
     let progress_bar_style = ProgressStyle::default_bar()
@@ -28,7 +27,4 @@ pub fn stats_loop(stats_rx: Receiver<u64>) -> Result<()> {
 
     progress_bar.finish_with_message("Processing complete");
     Ok(())
-
-    // processing_thread.join().unwrap();
-    // display_thread.join().unwrap();
 }

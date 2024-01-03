@@ -9,8 +9,8 @@ pub struct Opts {
     pub dataset: Option<String>,
     #[clap(short = 'r', long = "range")]
     pub range: Option<String>,
-    #[clap(short = 'f', long = "fields")]
-    pub fields: Option<String>,
-    #[clap(short = 'o', long = "options")]
-    pub options: Option<String>,
+    #[clap(short = 'f', long = "fields",num_args(0..))]
+    pub fields: Option<Vec<String>>,
+    #[clap(short = 'o', long = "options", num_args(0..))]
+    pub options: Option<Vec<String>>,
 }
