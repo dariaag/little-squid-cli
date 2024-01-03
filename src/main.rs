@@ -3,7 +3,7 @@ use clap::Parser;
 use crossbeam::channel::unbounded;
 use little_squid_cli::cli::config::Config;
 use little_squid_cli::cli::opts::Opts;
-use little_squid_cli::datasets::fetcher;
+use little_squid_cli::fetcher::fetcher;
 use little_squid_cli::progress::stats;
 use little_squid_cli::save;
 use std::io::Result;
@@ -20,8 +20,7 @@ async fn main() -> Result<()> {
     let (write_tx, write_rx) = unbounded();
 
     let (stat_tx, stat_rx) = unbounded();
-    //let read_handle = thread::spawn(move || block_on(blocks::block_loop(1, 1000, write_tx)));
-    let read_handle = tokio::spawn(fetcher::block_loop(
+    let read_handle = tokio::spawn(fetcher::fetch_loop(
         config.dataset,
         config.range.start,
         config.range.end,
@@ -35,9 +34,6 @@ async fn main() -> Result<()> {
     //let stats_handle = thread::spawn(move || stats::stats_loop(silent, stat_rx));
     let write_handle = thread::spawn(move || save::write_loop(config.dataset, fields, write_rx));
 
-    //crash if anythread have crashed
-    //.join returns io result wrapping our resul
-    //let read_io_result = read_handle.join().unwrap();
     let read_io_result = read_handle.await?;
     let stats_io_result = stats_handle.join().unwrap();
     let write_io_result = write_handle.join().unwrap();

@@ -50,7 +50,6 @@ fn create_query_json(
         }
 
         Dataset::Logs => {
-            // Return a Result::Err or use todo!() if not yet implemented
             todo!("Logs dataset handling not implemented")
         }
     }
@@ -64,7 +63,7 @@ pub async fn fetch_block_chunk(
     client: Client,
 ) -> Result<(Vec<Value>, u64), reqwest::Error> {
     let block_query = create_query_json(dataset, start_block, fields, &options);
-    println!("BLOCK QUERY: {:?}", block_query);
+    //println!("BLOCK QUERY: {:?}", block_query);
     let worker = get_worker(
         "https://v2.archive.subsquid.io/network/ethereum-mainnet",
         &start_block.to_string(),
@@ -80,10 +79,7 @@ pub async fn fetch_block_chunk(
         .await?;
 
     let blocks_value: Value = serde_json::from_str::<Value>(&result).unwrap();
-    //println!("BLOCKS VALUE: {:?}", result);
-
     let blocks = blocks_value.as_array().unwrap();
-
     let next_block = blocks
         .last()
         .and_then(|b| b["header"]["number"].as_u64())
@@ -93,7 +89,7 @@ pub async fn fetch_block_chunk(
     Ok((blocks.to_vec(), next_block))
 }
 
-pub async fn block_loop(
+pub async fn fetch_loop(
     dataset: Dataset,
     mut start_block: u64,
     end_block: u64,

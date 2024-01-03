@@ -1,5 +1,3 @@
-//block loop is the same as transaction loop so no need to rewrite as query works the same
-//implement fields and options for transactions
 use polars::prelude::{
     DataFrame, NamedFrom, ParquetCompression, ParquetWriter, Result as PolarsResult, Series,
     ZstdLevel,
@@ -11,35 +9,6 @@ use std::fs::{self, File};
 use std::io::Error;
 use std::path::Path;
 
-/* id: string+
-transactionIndex: number+
-block: BlockHeader //TODO extract block number
-
-// can be disabled with field selectors
-from: string +
-to?: string +
-hash: string +
-
-// can be requested with field selectors
-gas: bigint +
-gasPrice: bigint +
-maxFeePerGas?: bigint
-maxPriorityFeePerGas?: bigint
-input: string
-nonce: number
-value: bigint
-v?: bigint
-r?: string
-s?: string
-yParity?: number
-chainId?: number
-gasUsed?: bigint
-cumulativeGasUsed?: bigint
-effectiveGasPrice?: bigint
-contractAddress?: string
-type?: number
-status?: number
-sighash: string */
 #[derive(Debug)]
 pub enum TransactionsFieldData {
     Id(Vec<String>),

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{cli::opts::Opts, datasets};
+use crate::cli::opts::Opts;
 use anyhow::{anyhow, Context, Ok, Result};
 
 #[derive(Debug, PartialEq)]
@@ -109,14 +109,30 @@ fn get_fields(fields: Option<String>, dataset: Dataset) -> Result<Vec<String>> {
                     .collect(),
             )
         }
-        Dataset::Logs => Ok(vec!["hash".to_owned()]),
+        Dataset::Logs => {
+            if fields.is_none() {
+                return Ok(vec![
+                    "hash".to_owned(),
+                    "logIndex".to_owned(),
+                    "transactionIndex".to_owned(),
+                    "address".to_owned(),
+                    "data".to_owned(),
+                ]);
+            };
+            verify_log_fields(
+                fields
+                    .unwrap()
+                    .trim()
+                    .split(" ")
+                    .map(String::from)
+                    .collect(),
+            )
+        } // match fields {
+          //     Some(fields) => verify_fields(fields.trim().split(" ").map(String::from).collect()),
+          //     None => Err(anyhow!("No fields specified")),
+          // }
     }
-    // match fields {
-    //     Some(fields) => verify_fields(fields.trim().split(" ").map(String::from).collect()),
-    //     None => Err(anyhow!("No fields specified")),
-    // }
 }
-
 fn verify_transaction_fields(fields: Vec<String>) -> Result<Vec<String>> {
     let valid_fields: &[&str] = &[
         "id",
@@ -191,6 +207,28 @@ fn verify_block_fields(fields: Vec<String>) -> Result<Vec<String>> {
         .collect()
 }
 
+fn verify_log_fields(fields: Vec<String>) -> Result<Vec<String>> {
+    let valid_fields: &[&str] = &[
+        "hash",
+        "logIndex",
+        "transactionIndex",
+        "address",
+        "data",
+        //"topics",
+    ];
+
+    fields
+        .into_iter()
+        .map(|field| {
+            if valid_fields.contains(&field.as_str()) {
+                Ok(field)
+            } else {
+                Err(anyhow!("Invalid field: {}", field))
+            }
+        })
+        .collect()
+}
+
 fn get_dataset(dataset: Option<String>) -> Result<Dataset> {
     match dataset {
         Some(dataset) => match dataset.as_str() {
@@ -246,13 +284,12 @@ fn get_verified_options(dataset: Dataset) -> Option<Vec<String>> {
             "topic2".to_string(),
             "topic3".to_string(),
         ]),
-        _ => None,
+        //_ => None,
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
 
     use super::{Config, Dataset, Range};
     use crate::cli::opts::Opts;
@@ -326,48 +363,48 @@ mod tests {
         );
         return Ok(());
     }
-
-    // #[test]
-    // fn test_print_key() -> Result<()> {
-    //     let opts: Config = Opts {
-    //         args: vec!["foo".to_string()],
-    //         pwd: None,
-    //         config: None,
-    //     }
-    //     .try_into()?;
-    //     assert_eq!(opts.operation, Operation::Print(Some("foo".to_string())));
-
-    //     return Ok(());
-    // }
-    // #[test]
-    // fn test_add_key_value() -> Result<()> {
-    //     let opts: Config = Opts {
-    //         args: vec![
-    //             String::from("add"),
-    //             String::from("foo"),
-    //             String::from("bar"),
-    //         ],
-    //         pwd: None,
-    //         config: None,
-    //     }
-    //     .try_into()?;
-    //     assert_eq!(
-    //         opts.operation,
-    //         Operation::Add(String::from("foo"), String::from("bar"))
-    //     );
-
-    //     return Ok(());
-    // }
-    // #[test]
-    // fn test_remove_value() -> Result<()> {
-    //     let opts: Config = Opts {
-    //         args: vec![String::from("rm"), String::from("foo")],
-    //         pwd: None,
-    //         config: None,
-    //     }
-    //     .try_into()?;
-    //     assert_eq!(opts.operation, Operation::Remove(String::from("foo")));
-
-    //     return Ok(());
-    // }
 }
+
+// #[test]
+// fn test_print_key() -> Result<()> {
+//     let opts: Config = Opts {
+//         args: vec!["foo".to_string()],
+//         pwd: None,
+//         config: None,
+//     }
+//     .try_into()?;
+//     assert_eq!(opts.operation, Operation::Print(Some("foo".to_string())));
+
+//     return Ok(());
+// }
+// #[test]
+// fn test_add_key_value() -> Result<()> {
+//     let opts: Config = Opts {
+//         args: vec![
+//             String::from("add"),
+//             String::from("foo"),
+//             String::from("bar"),
+//         ],
+//         pwd: None,
+//         config: None,
+//     }
+//     .try_into()?;
+//     assert_eq!(
+//         opts.operation,
+//         Operation::Add(String::from("foo"), String::from("bar"))
+//     );
+
+//     return Ok(());
+// }
+// #[test]
+// fn test_remove_value() -> Result<()> {
+//     let opts: Config = Opts {
+//         args: vec![String::from("rm"), String::from("foo")],
+//         pwd: None,
+//         config: None,
+//     }
+//     .try_into()?;
+//     assert_eq!(opts.operation, Operation::Remove(String::from("foo")));
+
+//     return Ok(());
+// }

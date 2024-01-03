@@ -62,7 +62,7 @@ impl FieldData {
             FieldData::TransactionsData(_data) => self.add_transactions_value(value),
             //logs
             //traces
-            _ => panic!("Unsupported type"),
+            //_ => panic!("Unsupported type"),
         }
     }
 
